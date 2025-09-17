@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 export type Category = {
   id: string;
@@ -30,11 +30,7 @@ export default function CategoryTabs({
 
   return (
     <View style={styles.container}>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
+      <View style={styles.tabsContainer}>
         {categories.map((cat) => {
           const isActive = cat.id === activeId;
           return (
@@ -57,7 +53,7 @@ export default function CategoryTabs({
             </Pressable>
           );
         })}
-      </ScrollView>
+      </View>
     </View>
   );
 }
@@ -72,14 +68,20 @@ const styles = StyleSheet.create({
     padding: 6,
     marginTop: 12,
   },
-  scrollContent: {
-    paddingHorizontal: 10,
-    gap: 16,
+  tabsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 4,
   },
   tab: {
-    paddingHorizontal: 18,
+    flex: 1,
+    paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 26,
+    marginHorizontal: 2,
+    alignItems: "center",
+    justifyContent: "center",
   },
   tabInactive: {
     backgroundColor: "transparent",
@@ -88,8 +90,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#E53935",
   },
   tabText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "600",
+    textAlign: "center",
   },
   tabTextInactive: {
     color: "#E53935",

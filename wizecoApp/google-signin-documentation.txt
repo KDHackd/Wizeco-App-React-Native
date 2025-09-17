@@ -1,0 +1,432 @@
+# Documentation Google Sign-In - @react-native-google-signin/google-signin
+
+## Installation
+
+### Version Universelle (Premium)
+- Cross-Platform: Android, iOS, Web, macOS
+- Android: Credential Manager library
+- Web: Sign In with Google for Web
+- iOS & macOS: Google Sign-In SDK
+- Plus de 400k téléchargements npm
+- Réduction de 50% du temps de connexion sur Android
+
+### Version Publique (Gratuite)
+- Android et iOS seulement
+- Utilise l'ancien SDK Android (déprécié mais fonctionnel)
+- Aucune des fonctionnalités avancées
+
+### Installation
+```bash
+yarn add @react-native-google-signin/google-signin@latest
+```
+
+## Configuration Expo
+
+### Sans Firebase
+```json
+{
+  "expo": {
+    "plugins": [
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps._some_id_here_"
+        }
+      ]
+    ]
+  }
+}
+```
+
+### Avec Firebase
+```json
+{
+  "expo": {
+    "plugins": ["@react-native-google-signin/google-signin"],
+    "android": {
+      "googleServicesFile": "./google-services.json"
+    },
+    "ios": {
+      "googleServicesFile": "./GoogleService-Info.plist"
+    }
+  }
+}
+```
+
+### Build natif
+```bash
+npx expo prebuild --clean
+npx expo run:android && npx expo run:ios
+```
+
+## Configuration Android
+
+### Étape 1: Collecter les empreintes SHA-1
+- APK de développement
+- APK de production
+- Google Play Store (si applicable)
+- EAS Build: `eas credentials`
+
+### Étape 2: Ajouter les empreintes
+- Firebase Console OU Google Cloud Console
+- Créer un OAuth Client ID de type Android
+- Ajouter toutes les empreintes SHA-1
+
+## Configuration iOS
+
+### Avec Firebase
+- Utiliser les fichiers de configuration Firebase
+
+### Sans Firebase
+- Créer un OAuth Client ID de type iOS dans Google Cloud Console
+- Obtenir l'iOS Client ID et l'iOS URL scheme
+
+## Configuration Web
+
+### Web Client ID
+- Aller dans Google Cloud Console
+- Trouver ou créer un OAuth Client ID de type Web
+
+## Universal Sign In (Premium)
+
+### Configuration
+```typescript
+import { GoogleOneTapSignIn } from '@react-native-google-signin/google-signin';
+
+GoogleOneTapSignIn.configure({
+  webClientId: 'autoDetect', // ou votre web client ID
+});
+```
+
+### Flux de connexion complet
+```typescript
+import {
+  GoogleOneTapSignIn,
+  GoogleLogoButton,
+} from '@react-native-google-signin/google-signin';
+
+<GoogleLogoButton onPress={startSignInFlow} label="Sign in with Google" />;
+
+const startSignInFlow = async () => {
+  try {
+    GoogleOneTapSignIn.configure();
+    await GoogleOneTapSignIn.checkPlayServices();
+    const signInResponse = await GoogleOneTapSignIn.signIn();
+    
+    if (signInResponse.type === 'success') {
+      // Utiliser signInResponse.data
+    } else if (signInResponse.type === 'noSavedCredentialFound') {
+      const createResponse = await GoogleOneTapSignIn.createAccount();
+      if (createResponse.type === 'success') {
+        // Utiliser createResponse.data
+      } else if (createResponse.type === 'noSavedCredentialFound') {
+        const explicitResponse = await GoogleOneTapSignIn.presentExplicitSignIn();
+        if (explicitResponse.type === 'success') {
+          // Utiliser explicitResponse.data
+        }
+      }
+    }
+  } catch (error) {
+    // Gérer l'erreur
+  }
+};
+```
+
+### Méthodes Universal Sign In
+
+#### configure
+```typescript
+GoogleOneTapSignIn.configure({
+  webClientId: 'autoDetect', // ou votre web client ID
+  iosClientId: 'your-ios-client-id', // optionnel si Firebase/Expo
+});
+```
+
+#### signIn
+```typescript
+const signIn = async () => {
+  try {
+    await GoogleOneTapSignIn.checkPlayServices();
+    const response = await GoogleOneTapSignIn.signIn();
+
+    if (isSuccessResponse(response)) {
+      console.log(response.data);
+    } else if (isNoSavedCredentialFoundResponse(response)) {
+      // Appeler createAccount()
+    }
+  } catch (error) {
+    if (isErrorWithCode(error)) {
+      switch (error.code) {
+        case statusCodes.ONE_TAP_START_FAILED:
+          // Rate limiting sur Android
+          break;
+        case statusCodes.PLAY_SERVICES_NOT_AVAILABLE:
+          // Services Google Play non disponibles
+          break;
+      }
+    }
+  }
+};
+```
+
+#### createAccount
+```typescript
+await GoogleOneTapSignIn.createAccount();
+```
+
+#### presentExplicitSignIn
+```typescript
+await GoogleOneTapSignIn.presentExplicitSignIn();
+```
+
+#### checkPlayServices
+```typescript
+await GoogleOneTapSignIn.checkPlayServices();
+```
+
+#### signOut
+```typescript
+await GoogleOneTapSignIn.signOut();
+```
+
+#### revokeAccess
+```typescript
+await GoogleOneTapSignIn.revokeAccess(user.id);
+```
+
+## Original Google Sign In (Gratuit)
+
+### Configuration
+```typescript
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
+
+GoogleSignin.configure({
+  webClientId: '<FROM DEVELOPER CONSOLE>',
+  scopes: ['https://www.googleapis.com/auth/drive.readonly'],
+  offlineAccess: false,
+  hostedDomain: '',
+  forceCodeForRefreshToken: false,
+  accountName: '',
+  iosClientId: '<FROM DEVELOPER CONSOLE>',
+  googleServicePlistPath: '',
+  openIdRealm: '',
+  profileImageSize: 120,
+});
+```
+
+### Connexion
+```typescript
+const signIn = async () => {
+  try {
+    await GoogleSignin.hasPlayServices();
+    const response = await GoogleSignin.signIn();
+    if (isSuccessResponse(response)) {
+      setState({ userInfo: response.data });
+    }
+  } catch (error) {
+    if (isErrorWithCode(error)) {
+      switch (error.code) {
+        case statusCodes.IN_PROGRESS:
+          // Opération déjà en cours
+          break;
+        case statusCodes.PLAY_SERVICES_NOT_AVAILABLE:
+          // Services Google Play non disponibles
+          break;
+      }
+    }
+  }
+};
+```
+
+### Méthodes Original Sign In
+
+#### signInSilently
+```typescript
+const getCurrentUser = async () => {
+  try {
+    const response = await GoogleSignin.signInSilently();
+    if (isSuccessResponse(response)) {
+      setState({ userInfo: response.data });
+    } else if (isNoSavedCredentialFoundResponse(response)) {
+      // Utilisateur pas encore connecté
+    }
+  } catch (error) {
+    // Gérer l'erreur
+  }
+};
+```
+
+#### getCurrentUser
+```typescript
+const getCurrentUser = async () => {
+  const currentUser = GoogleSignin.getCurrentUser();
+  setState({ currentUser });
+};
+```
+
+#### hasPreviousSignIn
+```typescript
+const hasPreviousSignIn = async () => {
+  const hasPreviousSignIn = GoogleSignin.hasPreviousSignIn();
+  setState({ hasPreviousSignIn });
+};
+```
+
+#### signOut
+```typescript
+const signOut = async () => {
+  try {
+    await GoogleSignin.signOut();
+    setState({ user: null });
+  } catch (error) {
+    console.error(error);
+  }
+};
+```
+
+#### revokeAccess
+```typescript
+const revokeAccess = async () => {
+  try {
+    await GoogleSignin.revokeAccess();
+    // Compte Google déconnecté de l'app
+  } catch (error) {
+    console.error(error);
+  }
+};
+```
+
+#### hasPlayServices
+```typescript
+try {
+  await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+  // Services Google disponibles
+} catch (err) {
+  console.error('Services Google non disponibles');
+}
+```
+
+## GoogleSigninButton
+
+```typescript
+import { GoogleSigninButton } from '@react-native-google-signin/google-signin';
+
+<GoogleSigninButton
+  size={GoogleSigninButton.Size.Wide}
+  color={GoogleSigninButton.Color.Dark}
+  onPress={() => {
+    // Initier la connexion
+  }}
+  disabled={isInProgress}
+/>;
+```
+
+### Props
+- **size**: Size.Icon, Size.Standard, Size.Wide
+- **color**: Color.Dark, Color.Light
+- **disabled**: Boolean
+- **onPress**: Handler
+
+## Fonctions utilitaires
+
+```typescript
+import {
+  isErrorWithCode,
+  isSuccessResponse,
+  isNoSavedCredentialFoundResponse,
+  isCancelledResponse,
+  statusCodes,
+} from '@react-native-google-signin/google-signin';
+```
+
+## Configuration Doctor (Beta)
+
+### Utilisation
+```bash
+# Avec device/emulator
+npx @react-native-google-signin/config-doctor --package-name com.yourapp.name
+
+# Avec fichier APK
+npx @react-native-google-signin/config-doctor --apk-path ./app-release.apk
+```
+
+### Quand l'utiliser
+- DEVELOPER_ERROR
+- unexpected cancelled
+- GetCredentialProviderConfigurationException
+
+## Détection automatique
+
+### webClientId & iosClientId
+- Expo avec config plugin et prebuild
+- Firebase avec fichiers de configuration
+- Utiliser "autoDetect" pour webClientId
+
+### Configuration Firebase
+Ajouter dans GoogleService-Info.plist:
+```xml
+<key>WEB_CLIENT_ID</key>
+<string>your-web-client-id.apps.googleusercontent.com</string>
+```
+
+## Exigences
+
+### Version Universelle
+- compileSdkVersion >= 35
+- kotlinVersion >= 2.0.21
+- Expo SDK 53+ (déjà inclus)
+- React Native 0.76.0 - 0.81
+
+### Compatibilité
+- Expo: 52.0.40 - 54
+- React Native: 0.76.0 - 0.81
+
+## Erreurs communes
+
+### DEVELOPER_ERROR
+- Vérifier les empreintes SHA-1
+- Utiliser Configuration Doctor
+- Vérifier la configuration Google Cloud Console
+
+### PLAY_SERVICES_NOT_AVAILABLE
+- Mettre à jour Google Play Services
+- Vérifier la disponibilité sur l'appareil
+
+### IN_PROGRESS
+- Une opération est déjà en cours
+- Attendre la fin de l'opération
+
+### SIGN_IN_CANCELLED
+- L'utilisateur a annulé la connexion
+- Gérer gracieusement l'annulation
+
+## Migration
+
+### De la version publique à la version universelle
+- Suivre le guide de migration officiel
+- Mettre à jour la configuration
+- Tester sur tous les appareils
+
+## Support Web
+
+### Universal Sign In
+- One-tap flow automatique
+- Google Sign-In button
+- Support complet des fonctionnalités
+
+### Original Sign In
+- Support limité
+- Utiliser la version universelle pour le web
+
+## Sécurité
+
+### Bonnes pratiques
+- Ne jamais exposer les clés client
+- Utiliser HTTPS en production
+- Valider les tokens côté serveur
+- Gérer les erreurs gracieusement
+
+### Tokens
+- idToken pour l'authentification
+- accessToken pour les API Google
+- Ne pas utiliser accessToken pour l'assertion d'identité côté serveur

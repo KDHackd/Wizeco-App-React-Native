@@ -5,39 +5,82 @@
     "slug": "wizeco",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "wizeco",
-    "userInterfaceStyle": "automatic",
+    "icon": "./assets/images/logo.png",
+    "scheme": "com.evixgroup.wizeco",
+    "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.evixgroup.wizeco"
+      "bundleIdentifier": "com.evixgroup.wizeco",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Cette app a besoin d'accéder à votre localisation pour afficher les promos à proximité.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Cette app a besoin d'accéder à votre localisation pour afficher les promos à proximité."
+      }
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "foregroundImage": "./assets/images/logo.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.evixgroup.wizeco"
+      "package": "com.evixgroup.wizeco",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION",
+        "WAKE_LOCK",
+        "REQUEST_IGNORE_BATTERY_OPTIMIZATIONS",
+        "SYSTEM_ALERT_WINDOW",
+        "RECEIVE_BOOT_COMPLETED",
+        "AUTOSTART",
+        "POST_NOTIFICATIONS",
+        "VIBRATE",
+        "INTERNET",
+        "ACCESS_NETWORK_STATE"
+      ],
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/logo.png",
+      "headers": {
+        "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
+        "Cross-Origin-Embedder-Policy": "unsafe-none"
+      }
     },
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/logo.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-notifications",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Cette app a besoin d'accéder à votre localisation pour afficher les promos à proximité.",
+          "locationAlwaysPermission": "Cette app a besoin d'accéder à votre localisation en arrière-plan pour vous envoyer des notifications de promos.",
+          "locationWhenInUsePermission": "Cette app a besoin d'accéder à votre localisation pour afficher les promos à proximité.",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true,
+          "isAndroidBackgroundLocationAlwaysPermissionEnabled": true
+        }
+      ],
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.647553138923-treeu2mmrlfcn9s717r3visdvdu1crmb"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
@@ -47,9 +90,7 @@
         "projectId": "dbcbaf96-f9fb-4c70-b82a-b8d2a1be40af"
       }
     },
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
+    "runtimeVersion": "1.0.0",
     "updates": {
       "url": "https://u.expo.dev/dbcbaf96-f9fb-4c70-b82a-b8d2a1be40af"
     }
