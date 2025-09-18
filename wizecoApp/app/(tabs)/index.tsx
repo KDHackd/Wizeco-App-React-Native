@@ -14,8 +14,9 @@ import {
   convertApiHalteToHalteItem,
   convertApiPromoToPromoFlashItem,
 } from "@/utils/dataConverters";
+import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { AppState, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -23,6 +24,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function HomeScreen() {
   const [activeCategory, setActiveCategory] = useState<string>("catalogues");
+  const [isScreenFocused, setIsScreenFocused] = useState(true);
   const router = useRouter();
 
   const handleNavigateToProfile = () => {
@@ -46,6 +48,19 @@ export default function HomeScreen() {
     loadPromoFlash,
     loadHalteGachi,
   } = useApiData();
+
+  // Détecter quand l'écran est focus ou non (pour les vidéos)
+  useFocusEffect(
+    useCallback(() => {
+      console.log("🏠 Écran Home focus - vidéos peuvent jouer");
+      setIsScreenFocused(true);
+
+      return () => {
+        console.log("🏠 Écran Home non focus - pause vidéos");
+        setIsScreenFocused(false);
+      };
+    }, [])
+  );
 
   // Charger les données au montage du composant
   useEffect(() => {
@@ -185,6 +200,7 @@ export default function HomeScreen() {
         categories={categories}
         initialId={activeCategory}
         onNavigateToProfile={handleNavigateToProfile}
+        isScreenFocused={isScreenFocused}
         onChange={(categoryId) => {
           setActiveCategory(categoryId);
           // Recharger les données selon la catégorie sélectionnée

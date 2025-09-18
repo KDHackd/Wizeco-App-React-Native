@@ -418,7 +418,7 @@ const styles = StyleSheet.create({
   },
   cover: {
     width: "100%",
-    height: 220,
+    aspectRatio: 1,
   },
   priceRow: {
     flexDirection: "row",

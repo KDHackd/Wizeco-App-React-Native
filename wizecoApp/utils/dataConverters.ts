@@ -61,6 +61,8 @@ export const convertApiPromoToPromoFlashItem = (
       parseFloat(promo.distance.replace(/[^\d.,]/g, "").replace(",", ".")) || 0,
     promoUrl: promo.url,
     shortenUrl: promo.shortenUrl,
+    type: promo.type, // Ajouter le type (image/video)
+    url: promo.url, // Ajouter l'URL pour les vidéos
   };
 };
 

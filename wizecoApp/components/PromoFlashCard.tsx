@@ -5,15 +5,17 @@ import LikeService from "@/services/LikeService";
 import { ShareService } from "@/services/ShareService";
 import { ShoppingItemCategory, SocialStats } from "@/types/ShoppingListTypes";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import React, { useEffect, useState } from "react";
+import React, { Ref, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  AppState,
   Image,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import Video, { VideoRef } from "react-native-video";
 import LoginRequiredModal from "./LoginRequiredModal";
 
 export type PromoFlashItem = {
@@ -31,12 +33,17 @@ export type PromoFlashItem = {
   promoUrl?: string; // URL de la promo flash à partager
   shortenUrl?: string; // URL raccourcie
   isLiked?: boolean; // État du like pour l'utilisateur
+  type?: string; // "image" ou "video"
+  url?: string; // URL de la vidéo si type === "video"
 };
 
 type PromoFlashCardProps = {
   item: PromoFlashItem;
   onPress?: (id: number) => void;
   onNavigateToProfile?: () => void;
+  isTabActive?: boolean; // Nouveau prop pour détecter si la tab est active
+  isScreenFocused?: boolean; // Nouveau prop pour détecter si l'écran est focus
+  isVideoVisible?: boolean; // Nouveau prop pour détecter si cette vidéo spécifique est visible
 };
 
 function splitPrice(value: number): { intPart: string; fracPart: string } {
@@ -44,10 +51,38 @@ function splitPrice(value: number): { intPart: string; fracPart: string } {
   return { intPart, fracPart };
 }
 
+// Fonction pour obtenir une thumbnail de vidéo
+function getVideoThumbnail(url: string | undefined): any {
+  if (!url) {
+    // Image par défaut si pas d'URL
+    return require("@/assets/images/icon.png");
+  }
+
+  // Vérifier si c'est une URL YouTube
+  const youtubePatterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+    /youtube\.com\/v\/([^&\n?#]+)/,
+  ];
+
+  for (const pattern of youtubePatterns) {
+    const match = url.match(pattern);
+    if (match) {
+      // Thumbnail YouTube
+      return { uri: `https://img.youtube.com/vi/${match[1]}/hqdefault.jpg` };
+    }
+  }
+
+  // Pour les autres types de vidéos, utiliser l'image par défaut
+  return require("@/assets/images/icon.png");
+}
+
 export default function PromoFlashCard({
   item,
   onPress,
   onNavigateToProfile,
+  isTabActive = true, // Par défaut, la tab est active
+  isScreenFocused = true, // Par défaut, l'écran est focus
+  isVideoVisible = false, // Par défaut, la vidéo n'est pas visible
 }: PromoFlashCardProps) {
   const { addShoppingItem, isAdding } = useCart();
   const { isConnected, user } = useAuth();
@@ -61,6 +96,59 @@ export default function PromoFlashCard({
   });
   const [isLoadingStats, setIsLoadingStats] = useState(true);
   const [loginAction, setLoginAction] = useState<string>("");
+  const [videoLoaded, setVideoLoaded] = useState(false);
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const videoRef = useRef<typeof Video>(null);
+
+  // Auto-play quand la vidéo devient visible (comportement Instagram)
+  useEffect(() => {
+    if (item.type !== "video") return;
+
+    // Démarrer la vidéo automatiquement quand :
+    // 1. La vidéo est chargée
+    // 2. La tab est active
+    // 3. L'écran est focus
+    // 4. Cette vidéo spécifique est visible
+    if (videoLoaded && isTabActive && isScreenFocused && isVideoVisible) {
+      console.log("🎥 Vidéo visible - démarrage auto-play");
+      setIsVideoPlaying(true);
+    } else {
+      console.log(
+        "🎥 Vidéo non visible ou conditions non remplies - pause vidéo"
+      );
+      setIsVideoPlaying(false);
+    }
+  }, [videoLoaded, item.type, isTabActive, isScreenFocused, isVideoVisible]);
+
+  // Gérer la pause/play selon l'état de l'app ET de la tab ET de l'écran (comportement Instagram)
+  useEffect(() => {
+    if (item.type !== "video") return;
+
+    const handleAppStateChange = (nextAppState: string) => {
+      if (
+        nextAppState === "active" &&
+        isTabActive &&
+        isScreenFocused &&
+        isVideoVisible
+      ) {
+        console.log(
+          "🎥 App active + Tab active + Écran focus + Vidéo visible - reprise vidéo"
+        );
+        setIsVideoPlaying(true);
+      } else {
+        console.log(
+          "🎥 App inactive ou Tab inactive ou Écran non focus ou Vidéo non visible - pause vidéo"
+        );
+        setIsVideoPlaying(false);
+      }
+    };
+
+    const subscription = AppState.addEventListener(
+      "change",
+      handleAppStateChange
+    );
+    return () => subscription?.remove();
+  }, [item.type, isTabActive, isScreenFocused, isVideoVisible]);
 
   // Récupérer les stats sociales et l'état du like au chargement
   useEffect(() => {
@@ -160,7 +248,63 @@ export default function PromoFlashCard({
   return (
     <View style={styles.container}>
       <View style={styles.imageWrapper}>
-        <Image source={item.image} style={styles.cover} resizeMode="contain" />
+        {(() => {
+          console.log("🔍 Item type:", item.type, "URL:", item.url);
+          return item.type === "video";
+        })() ? (
+          <View style={styles.cover}>
+            <Video
+              ref={videoRef as Ref<VideoRef>}
+              source={{ uri: item.url || "" }}
+              style={styles.cover}
+              repeat={true}
+              resizeMode="contain"
+              controls={true}
+              paused={!isVideoPlaying}
+              muted={!isVideoPlaying}
+              onLoad={() => {
+                console.log("🎥 Vidéo chargée avec succès");
+                setVideoLoaded(true);
+              }}
+              onError={(error) => {
+                console.log("❌ Erreur vidéo:", error);
+              }}
+              onLoadStart={() => {
+                console.log("🎥 Chargement vidéo démarré");
+              }}
+            />
+            {!videoLoaded && (
+              <View style={styles.videoLoadingOverlay}>
+                <ActivityIndicator size="large" color="#E53935" />
+                <Text style={styles.videoLoadingText}>Chargement vidéo...</Text>
+              </View>
+            )}
+
+            {/* Badge vidéo */}
+            <View
+              style={{
+                position: "absolute",
+                top: 10,
+                left: 10,
+                backgroundColor: "rgba(0,0,0,0.7)",
+                padding: 5,
+                borderRadius: 4,
+              }}
+            >
+              <Text
+                style={{ color: "white", fontSize: 12, fontWeight: "bold" }}
+              >
+                🎥 VIDEO
+              </Text>
+            </View>
+          </View>
+        ) : (
+          <Image
+            source={item.image}
+            style={styles.cover}
+            resizeMode="contain"
+          />
+        )}
         {typeof item.priceCurrent === "number" && (
           <View style={styles.priceBadge}>
             {(() => {
@@ -355,7 +499,10 @@ export default function PromoFlashCard({
               addShoppingItem({
                 id: `promo-${item.id}-${Date.now()}`,
                 name: item.title,
-                image: item.image,
+                image:
+                  item.type === "video"
+                    ? getVideoThumbnail(item.url) // Thumbnail pour les vidéos
+                    : item.image, // Image normale pour les images
                 quantity: 1,
                 category: ShoppingItemCategory.PROMO_FLASH,
                 originalId: item.id.toString(),
@@ -406,7 +553,7 @@ const styles = StyleSheet.create({
   },
   cover: {
     width: "100%",
-    height: 220,
+    aspectRatio: 1,
   },
   priceRow: {
     flexDirection: "row",
@@ -560,5 +707,21 @@ const styles = StyleSheet.create({
   statButtonPressed: {
     backgroundColor: "#F3F4F6",
     transform: [{ scale: 0.95 }],
+  },
+  videoLoadingOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  videoLoadingText: {
+    color: "white",
+    marginTop: 10,
+    fontSize: 14,
+    fontWeight: "600",
   },
 });

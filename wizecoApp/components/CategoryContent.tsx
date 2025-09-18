@@ -1,10 +1,11 @@
-import React from "react";
+import React, { useCallback } from "react";
 import {
   ActivityIndicator,
   FlatList,
   StyleSheet,
   Text,
   View,
+  ViewToken,
 } from "react-native";
 import CatalogCard, { CatalogItem } from "./CatalogCard";
 import HalteCard, { HalteItem } from "./HalteCard";
@@ -15,6 +16,9 @@ interface CategoryContentProps {
   data: any[];
   loading: boolean;
   onNavigateToProfile?: () => void;
+  isActive?: boolean; // Nouveau prop pour savoir si cette tab est active
+  isScreenFocused?: boolean; // Nouveau prop pour savoir si l'écran est focus
+  onVideoVisibilityChange?: (itemId: string, isVisible: boolean) => void; // Callback pour la visibilité des vidéos
 }
 
 // Composant pour les catalogues
@@ -64,7 +68,42 @@ export const PromoFlashContent: React.FC<CategoryContentProps> = ({
   data,
   loading,
   onNavigateToProfile,
+  isActive = true, // Nouveau prop pour savoir si cette tab est active
+  isScreenFocused = true, // Nouveau prop pour savoir si l'écran est focus
+  onVideoVisibilityChange,
 }) => {
+  const [visibleVideoId, setVisibleVideoId] = React.useState<string | null>(
+    null
+  );
+
+  // Callback pour détecter les changements de visibilité
+  const onViewableItemsChanged = useCallback(
+    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+      // Trouver la première vidéo visible
+      const visibleVideo = viewableItems.find(
+        (item) => item.item && (item.item as PromoFlashItem).type === "video"
+      );
+
+      const newVisibleVideoId = visibleVideo
+        ? String(visibleVideo.item.id)
+        : null;
+
+      if (newVisibleVideoId !== visibleVideoId) {
+        console.log("🎥 Changement de visibilité vidéo:", {
+          ancien: visibleVideoId,
+          nouveau: newVisibleVideoId,
+        });
+
+        setVisibleVideoId(newVisibleVideoId);
+        onVideoVisibilityChange?.(newVisibleVideoId || "", !!newVisibleVideoId);
+      }
+    },
+    [visibleVideoId, onVideoVisibilityChange]
+  );
+
+  const viewabilityConfig = {
+    itemVisiblePercentThreshold: 50, // 50% de la vidéo doit être visible
+  };
   if (loading) {
     return (
       <View style={styles.loaderContainer}>
@@ -94,10 +133,15 @@ export const PromoFlashContent: React.FC<CategoryContentProps> = ({
         <PromoFlashCard
           item={item as PromoFlashItem}
           onNavigateToProfile={onNavigateToProfile}
+          isTabActive={isActive}
+          isScreenFocused={isScreenFocused}
+          isVideoVisible={visibleVideoId === String(item.id)}
         />
       )}
       contentContainerStyle={styles.listContent}
       showsVerticalScrollIndicator={false}
+      onViewableItemsChanged={onViewableItemsChanged}
+      viewabilityConfig={viewabilityConfig}
     />
   );
 };

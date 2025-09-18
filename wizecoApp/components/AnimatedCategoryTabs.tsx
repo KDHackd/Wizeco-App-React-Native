@@ -22,6 +22,7 @@ type AnimatedCategoryTabsProps = {
   initialId?: string;
   onChange?: (categoryId: string) => void;
   onNavigateToProfile?: () => void;
+  isScreenFocused?: boolean; // Nouveau prop pour savoir si l'écran est focus
 };
 
 const { width: screenWidth } = Dimensions.get("window");
@@ -31,6 +32,7 @@ export default function AnimatedCategoryTabs({
   initialId,
   onChange,
   onNavigateToProfile,
+  isScreenFocused = true, // Par défaut, l'écran est focus
 }: AnimatedCategoryTabsProps) {
   const defaultIndex = useMemo(() => {
     const index = categories.findIndex((cat) => cat.id === initialId);
@@ -121,14 +123,17 @@ export default function AnimatedCategoryTabs({
       scrollEventThrottle={16}
       style={styles.contentContainer}
     >
-      {categories.map((category) => {
+      {categories.map((category, index) => {
         const Component = category.component;
+        const isActive = index === activeIndex; // Détermine si cette tab est active
         return (
           <View key={category.id} style={styles.pageContainer}>
             <Component
               data={category.data || []}
               loading={category.loading || false}
               onNavigateToProfile={onNavigateToProfile}
+              isActive={isActive}
+              isScreenFocused={isScreenFocused}
             />
           </View>
         );
